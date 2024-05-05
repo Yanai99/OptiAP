@@ -1,7 +1,6 @@
 from measure_distance import average_trilateration, create_distance_coordinates_list
 from k_means import prepare_single_measure_data,k_means_algorithm
 
-
 data_for_k_means=[]
 
 measure_test_array = [
