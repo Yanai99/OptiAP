@@ -1,0 +1,24 @@
+menu "User Configurations"
+    config BUTTON_GPIO
+        int "Button GPIO"
+        default 0
+        help
+            Type the GPIO number of the button
+
+    menu "WiFi Configuration"
+
+        config WIFI_SSID
+            string "WiFi SSID"
+            default "agent"
+            help
+                Type the SSID of the WiFi network
+
+        config WIFI_PASSWORD
+            string "WiFi Password"
+            default "mypassword"
+            help
+                Type the password of the WiFi network
+
+    endmenu
+
+endmenu
