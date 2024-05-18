@@ -8,6 +8,20 @@ uint32_t dist_est;
 
 esp_ip4_addr_t server_ip = {0};
 
+esp_http_client_config_t config = {
+    .host = "192.168.4.2",
+    .port = 8080,
+    .path = "store-data",
+    .method = HTTP_METHOD_POST,
+    .event_handler = http_event_handler,
+    .keep_alive_enable = true,
+    .keep_alive_idle = 10,
+    .keep_alive_interval = 10,
+    .keep_alive_count = 3
+};
+
+esp_http_client_handle_t client;
+
 void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     if (event_base == WIFI_EVENT) {
@@ -183,6 +197,8 @@ esp_err_t wifi_init(esp_netif_t* sta_netif, esp_netif_t* ap_netif)
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &sta_config));
     ESP_ERROR_CHECK(esp_wifi_connect());
 
+    client = esp_http_client_init(&config);
+
     return ESP_OK;
 }
 
@@ -218,24 +234,18 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
     free(ap_records);
 }
 
-// we want to remove the http "things" in ftm_procedure, and instead create a new function http_post_data
-// that will be called from ftm_procedure
-// the http_post_data will be responsible for sending the data to the server
-// the data to be sent will be passed as an argument to the function
-// the function will return an esp_err_t
-
-// NOTE: we want to maintain the http session open, so we will create the http client in the main function
-// and pass it as an argument to the http_post_data function
-
-esp_err_t http_post_data(esp_http_client_handle_t client, char *post_data)
+esp_err_t http_post_data(char *post_data)
 {
     ESP_ERROR_CHECK(esp_http_client_set_header(client, "Content-Type", "application/json"));
     ESP_ERROR_CHECK(esp_http_client_set_post_field(client, post_data, strlen(post_data)));
+
+    esp_http_client_set_method(client, HTTP_METHOD_POST);
 
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
         ESP_LOGI(TAG_WIFI, "HTTP POST Status = %d",
                 esp_http_client_get_status_code(client));
+        
     } else {
         ESP_LOGE(TAG_WIFI, "HTTP POST request failed: %s", esp_err_to_name(err));
     }
@@ -250,19 +260,7 @@ void ftm_procedure(void *btn_plus_task_to_create)
     scan_ftm_responders(&num_ftm_responders, ftm_responders);
 
     button_task_t *btn_plus_task = (button_task_t *)btn_plus_task_to_create;
-
-    esp_http_client_config_t config = {
-        .host = "192.168.4.2",
-        .port = 8080,
-        .path = "store-data",
-        .method = HTTP_METHOD_POST,
-        .event_handler = http_event_handler
-    };
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
-
-
-
+    
     for (int i = 0; i < num_ftm_responders; i++) {
         wifi_ftm_initiator_cfg_t ftm_initiator_cfg = {
             .resp_mac = {ftm_responders[i].mac[0], ftm_responders[i].mac[1], ftm_responders[i].mac[2], ftm_responders[i].mac[3], ftm_responders[i].mac[4], ftm_responders[i].mac[5]},
@@ -283,44 +281,14 @@ void ftm_procedure(void *btn_plus_task_to_create)
                                                 portMAX_DELAY);
 
         if (bits & FTM_SUCCESS_BIT) {
-            // esp_http_client_config_t config = {
-            //     .host = "192.168.4.2",
-            //     .port = 8080,
-            //     .path = "store-data",
-            //     .method = HTTP_METHOD_POST,
-            //     .event_handler = http_event_handler
-            // };
-
-            // esp_http_client_handle_t client = esp_http_client_init(&config);
-
-            // char post_data[255];
-            // sprintf(post_data, "{\"data\": {\"mac\": \"%02x:%02x:%02x:%02x:%02x:%02x\", \"rssi\": %d, \"dist_est\": %"PRIu32".%"PRIu32"}}",
-            //         ftm_responders[i].mac[0], ftm_responders[i].mac[1], ftm_responders[i].mac[2], ftm_responders[i].mac[3], ftm_responders[i].mac[4], ftm_responders[i].mac[5],
-            //         ftm_responders[i].rssi, dist_est / 100, dist_est % 100);
-            // ESP_LOGI(TAG_WIFI, "POST data: %s", post_data);
-            // ESP_LOGI(TAG_WIFI, "To url: http://"IPSTR":%d/%s", IP2STR(&server_ip), config.port, config.path);
-
-            // ESP_ERROR_CHECK(esp_http_client_set_header(client, "Content-Type", "application/json"));
-            // ESP_ERROR_CHECK(esp_http_client_set_post_field(client, post_data, strlen(post_data)));
-
-            // esp_err_t err = esp_http_client_perform(client);
-            // if (err == ESP_OK) {
-            //     ESP_LOGI(TAG_WIFI, "HTTP POST Status = %d",
-            //             esp_http_client_get_status_code(client));
-            // } else {
-            //     ESP_LOGE(TAG_WIFI, "HTTP POST request failed: %s", esp_err_to_name(err));
-            // }
-
-            // esp_http_client_cleanup(client);
-
             char post_data[255];
             sprintf(post_data, "{\"data\": {\"mac\": \"%02x:%02x:%02x:%02x:%02x:%02x\", \"rssi\": %d, \"dist_est\": %"PRIu32".%"PRIu32"}}",
                     ftm_responders[i].mac[0], ftm_responders[i].mac[1], ftm_responders[i].mac[2], ftm_responders[i].mac[3], ftm_responders[i].mac[4], ftm_responders[i].mac[5],
                     ftm_responders[i].rssi, dist_est / 100, dist_est % 100);
             ESP_LOGI(TAG_WIFI, "POST data: %s", post_data);
-            ESP_LOGI(TAG_WIFI, "To url: http://"IPSTR":%d/%s", IP2STR(&server_ip), config.port, config.path);
+            ESP_LOGI(TAG_WIFI, "To url: http://"IPSTR":%d/%s", IP2STR(&server_ip), 8080, "store-data");
 
-            esp_err_t err = http_post_data(client, post_data);
+            esp_err_t err = http_post_data(post_data);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG_WIFI, "Failed to send data to server");
             }
@@ -333,8 +301,6 @@ void ftm_procedure(void *btn_plus_task_to_create)
         }
         esp_wifi_ftm_end_session();
     }
-
-    esp_http_client_cleanup(client);
 
     // Re-register the button callback
     ESP_ERROR_CHECK(iot_button_register_cb(btn_plus_task->btn, BUTTON_SINGLE_CLICK, button_single_press_cb, btn_plus_task->task_to_create));

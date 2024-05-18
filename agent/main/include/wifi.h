@@ -33,6 +33,8 @@ extern uint32_t dist_est;
 
 extern esp_ip4_addr_t server_ip;
 
+extern esp_http_client_handle_t client;
+
 #define TAG_WIFI "WIFI"
 
 /**
@@ -99,4 +101,4 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
  */
 void ftm_procedure(void *btn_plus_task_to_create);
 
-esp_err_t http_post_data(esp_http_client_handle_t client, char *post_data);
+esp_err_t http_post_data(char *post_data);
