@@ -14,10 +14,7 @@ esp_http_client_config_t config = {
     .path = "store-data",
     .method = HTTP_METHOD_POST,
     .event_handler = http_event_handler,
-    .keep_alive_enable = true,
-    .keep_alive_idle = 10,
-    .keep_alive_interval = 10,
-    .keep_alive_count = 3
+    .keep_alive_enable = true
 };
 
 esp_http_client_handle_t client;
@@ -181,22 +178,6 @@ esp_err_t wifi_init(esp_netif_t* sta_netif, esp_netif_t* ap_netif)
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG_WIFI, "Wi-Fi started");
 
-    // we want to connect to an AP
-    wifi_config_t sta_config = {
-        .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD
-        }
-    };
-
-    if (strlen(CONFIG_WIFI_PASSWORD) == 0) {
-        sta_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
-    }
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &sta_config));
-    ESP_ERROR_CHECK(esp_wifi_connect());
-
     client = esp_http_client_init(&config);
 
     return ESP_OK;
@@ -206,11 +187,8 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
 {
     wifi_scan_config_t scan_config = {
         .scan_type = WIFI_SCAN_TYPE_ACTIVE,
-        .ssid = NULL,
-        .bssid = NULL,
-        .scan_time.active.min = 0,
-        .scan_time.active.max = 120,
-        .show_hidden = true
+        .show_hidden = true,
+        .channel = 1
     };
 
     ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
@@ -236,6 +214,8 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
 
 esp_err_t http_post_data(char *post_data)
 {
+    int64_t time_start = esp_timer_get_time();
+
     ESP_ERROR_CHECK(esp_http_client_set_header(client, "Content-Type", "application/json"));
     //ESP_ERROR_CHECK(esp_http_client_set_header(client, "Connection", "keep-alive"));
     ESP_ERROR_CHECK(esp_http_client_set_post_field(client, post_data, strlen(post_data)));
@@ -251,6 +231,8 @@ esp_err_t http_post_data(char *post_data)
         ESP_LOGE(TAG_WIFI, "HTTP POST request failed: %s", esp_err_to_name(err));
     }
 
+    int64_t time_end = esp_timer_get_time();
+    ESP_LOGI(TAG_WIFI, "HTTP POST time: %"PRIu64" ms", (time_end - time_start) / 1000);
     return err;
 }
 

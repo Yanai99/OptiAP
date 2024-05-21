@@ -11,6 +11,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 
+#include "esp_timer.h"
+
 #include "esp_http_client.h"
 
 #include "common.h"
@@ -101,4 +103,11 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
  */
 void ftm_procedure(void *btn_plus_task_to_create);
 
+/**
+ * @brief Post data to the server
+ * 
+ * @param post_data Pointer to the data to be posted
+ * 
+ * @return ESP_OK if the data was successfully posted, ESP_FAIL otherwise
+ */
 esp_err_t http_post_data(char *post_data);
