@@ -237,6 +237,7 @@ void scan_ftm_responders(int* num_ftm_responders, ftm_responder_t* ftm_responder
 esp_err_t http_post_data(char *post_data)
 {
     ESP_ERROR_CHECK(esp_http_client_set_header(client, "Content-Type", "application/json"));
+    //ESP_ERROR_CHECK(esp_http_client_set_header(client, "Connection", "keep-alive"));
     ESP_ERROR_CHECK(esp_http_client_set_post_field(client, post_data, strlen(post_data)));
 
     esp_http_client_set_method(client, HTTP_METHOD_POST);
