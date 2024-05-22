@@ -243,7 +243,11 @@ void ftm_procedure(void *btn_plus_task_to_create)
     scan_ftm_responders(&num_ftm_responders, ftm_responders);
 
     button_task_t *btn_plus_task = (button_task_t *)btn_plus_task_to_create;
-    
+
+    char post_data[255];
+    char buffer[255];
+    strcpy(post_data, "{\"data\": [");
+
     for (int i = 0; i < num_ftm_responders; i++) {
         wifi_ftm_initiator_cfg_t ftm_initiator_cfg = {
             .resp_mac = {ftm_responders[i].mac[0], ftm_responders[i].mac[1], ftm_responders[i].mac[2], ftm_responders[i].mac[3], ftm_responders[i].mac[4], ftm_responders[i].mac[5]},
@@ -264,18 +268,11 @@ void ftm_procedure(void *btn_plus_task_to_create)
                                                 portMAX_DELAY);
 
         if (bits & FTM_SUCCESS_BIT) {
-            char post_data[255];
-            sprintf(post_data, "{\"data\": {\"mac\": \"%02x:%02x:%02x:%02x:%02x:%02x\", \"rssi\": %d, \"dist_est\": %"PRIu32".%"PRIu32"}}",
+            sprintf(buffer, "{\"mac\": \"%02x:%02x:%02x:%02x:%02x:%02x\", \"rssi\": %d, \"dist_est\": %"PRIu32".%"PRIu32"},",
                     ftm_responders[i].mac[0], ftm_responders[i].mac[1], ftm_responders[i].mac[2], ftm_responders[i].mac[3], ftm_responders[i].mac[4], ftm_responders[i].mac[5],
-                    ftm_responders[i].rssi, dist_est / 100, dist_est % 100);
-            ESP_LOGI(TAG_WIFI, "POST data: %s", post_data);
-            ESP_LOGI(TAG_WIFI, "To url: http://"IPSTR":%d/%s", IP2STR(&server_ip), 8080, "store-data");
-
-            esp_err_t err = http_post_data(post_data);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG_WIFI, "Failed to send data to server");
-            }
-
+                    ftm_responders[i].rssi, dist_est / 100, dist_est % 100
+            );
+            strcat(post_data, buffer);
         } else if (bits & FTM_FAILURE_BIT) {
             ESP_LOGE(TAG_WIFI, "FTM procedure with responder ["MACSTR"] failed", MAC2STR(ftm_responders[i].mac));
         } else {
@@ -285,10 +282,22 @@ void ftm_procedure(void *btn_plus_task_to_create)
         esp_wifi_ftm_end_session();
     }
 
+    // remove the last comma
+    post_data[strlen(post_data) - 1] = '\0';
+    strcat(post_data, "]}");
+
+    ESP_LOGI(TAG_WIFI, "POST data: %s", post_data);
+    ESP_LOGI(TAG_WIFI, "To url: http://"IPSTR":%d/%s", IP2STR(&server_ip), 8080, "store-data");
+
+    esp_err_t err = http_post_data(post_data);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_WIFI, "Failed to send data to server");
+    }
+
     // Re-register the button callback
     ESP_ERROR_CHECK(iot_button_register_cb(btn_plus_task->btn, BUTTON_SINGLE_CLICK, button_single_press_cb, btn_plus_task->task_to_create));
 
-    // Free the memory allocated in the button_double_press_cb
+    // Free the memory allocated in the button_single_press_cb
     free(btn_plus_task);
 
     vTaskDelete(NULL);
