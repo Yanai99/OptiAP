@@ -27,6 +27,7 @@ esp_err_t init_button(button_handle_t *btn)
 void button_single_press_cb(void *btn, void *task_to_create)
 {
     ESP_LOGI(TAG_BUTTON, "Button single press");
+    set_led_color_with_brightness(255, 0, 0, LED_BRIGHTNESS);
     iot_button_unregister_cb((button_handle_t)btn, BUTTON_SINGLE_CLICK);
     TaskFunction_t task = (TaskFunction_t)task_to_create;
     button_task_t *btn_plus_task = (button_task_t *)malloc(sizeof(button_task_t)); // we need to free this memory in the task

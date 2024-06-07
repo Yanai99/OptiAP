@@ -5,6 +5,7 @@
 
 #include "wifi.h"
 #include "button.h"
+#include "rgb_led.h"
 
 void app_main(void)
 {
@@ -17,6 +18,13 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    // clear LED
+    configure_led();
+    clear_led();
+
+    // orange color
+    set_led_color_with_brightness(255, 165, 0, LED_BRIGHTNESS);
+    
     // Initialize WiFi
     esp_netif_t *sta_netif = NULL;
     esp_netif_t *ap_netif = NULL;
@@ -30,6 +38,8 @@ void app_main(void)
     button_handle_t btn;
     ESP_ERROR_CHECK(init_button(&btn));
     ESP_ERROR_CHECK(assign_functionalities_to_button(&btn, ftm_procedure, NULL, NULL));
+
+    set_led_color_with_brightness(0, 255, 0, LED_BRIGHTNESS);
 
     // loop
     while (1)

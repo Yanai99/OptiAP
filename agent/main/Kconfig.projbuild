@@ -21,4 +21,10 @@ menu "User Configurations"
 
     endmenu
 
+    config RGB_LED_GPIO
+        int "RGB LED GPIO"
+        default 48
+        help
+            Type the GPIO number of the RGB LED
+
 endmenu

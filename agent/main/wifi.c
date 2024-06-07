@@ -300,5 +300,7 @@ void ftm_procedure(void *btn_plus_task_to_create)
     // Free the memory allocated in the button_single_press_cb
     free(btn_plus_task);
 
+    set_led_color_with_brightness(0, 255, 0, LED_BRIGHTNESS);
+
     vTaskDelete(NULL);
 }

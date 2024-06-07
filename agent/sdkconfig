@@ -521,6 +521,8 @@ CONFIG_BUTTON_GPIO=0
 CONFIG_WIFI_SSID="agent"
 CONFIG_WIFI_PASSWORD="mypassword"
 # end of WiFi Configuration
+
+CONFIG_RGB_LED_GPIO=48
 # end of User Configurations
 
 #

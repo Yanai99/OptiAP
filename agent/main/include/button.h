@@ -2,6 +2,7 @@
 
 #include "esp_log.h"
 #include "iot_button.h"
+#include "rgb_led.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
