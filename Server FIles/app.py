@@ -1,38 +1,64 @@
-from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, send, emit
+from flask import Flask, request, jsonify, make_response
+from flask_cors import CORS
+
+# Add a way to send the esp32 Agent the data
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
-socketio = SocketIO(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})  # Allow only localhost:3000
 
+raw_measurements = []
+processed_measurement = []
 beacon_locations = {}
 beacon_colors = {}
-map_size = (0,0)
+map_size = (0, 0)
+measurements = []
+measurement_counter = 0
+beacon_locations = {}
+beacons_mac_id_dict = {
+    '80:65:99:c8:5c:51': 1,
+}
 
 # HTTP route to handle beacons locations and colors
 @app.route('/beacons_locations_and_colors', methods=['POST'])
 def get_beacons_locations_and_colors():
-    # Get JSON data from the request body
-    data = request.get_json()
-    # Extract beacons data
-    beacons_data = data.get('beacons data', [])
+    try:
+        data = request.get_json()
+    except Exception as e:
+        return jsonify({'error': 'Invalid JSON'}), 400
 
-    for index, beacon in enumerate(beacons_data, start=1):
-        # Ensure the beacon data is correctly formatted
-        if len(beacon) == 2 and isinstance(beacon[0], (list, tuple)) and isinstance(beacon[1], (list, tuple)):
-            beacon_id = f'beacon{index}'
-            beacon_colors[beacon_id] = tuple(beacon[0])
-            beacon_locations[beacon_id] = tuple(beacon[1])
-    print(beacon_locations)
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    print(data)
+
+    if data != 'test':
+        # Extract beacons data
+        beacons_data = data.get('beacons_data', [])
+
+        for index, beacon in enumerate(beacons_data, start=1):
+            # Ensure the beacon data is correctly formatted
+            if isinstance(beacon, dict) and 'x' in beacon and 'y' in beacon and 'color' in beacon:
+                beacon_id = f'beacon{index}'
+                beacon_colors[beacon_id] = beacon['color']
+                beacon_locations[beacon_id] = (beacon['x'], beacon['y'])
+        print(beacon_locations)
+
+    # Convert all keys to strings for JSON response
+    beacon_locations_str_keys = {str(k): v for k, v in beacon_locations.items()}
+    beacon_colors_str_keys = {str(k): v for k, v in beacon_colors.items()}
+
     # Return the dictionaries as JSON
     return jsonify({
-        'locations': beacon_locations,
-        'colors': beacon_colors
+        'locations': beacon_locations_str_keys,
+        'colors': beacon_colors_str_keys
     })
+
 
 # HTTP route to handle map size
 @app.route('/map_size', methods=['GET'])
 def get_map_size():
+    global map_size
+
     # Get JSON data from the request body
     data = request.get_json()
 
@@ -52,19 +78,49 @@ def get_map_size():
     # Respond with the saved map size
     return jsonify({'map_size': map_size})
 
-# Send to Front-end the router coordinates
 
-# WebSocket event to handle messages from ESP32
-@socketio.on('message')
-def handle_ws_message(msg):
-    print(f"Received message from ESP32: {msg}")
-    send(f"Response to {msg}")
+# New route to handle the Done function
+@app.route('/done', methods=['GET'])
+def done():
+    # Example optimal_locations array (replace with actual logic to determine optimal locations)
+    optimal_locations = [
+        {"x": 100, "y": 200},
+        {"x": 150, "y": 250},
+        {"x": 300, "y": 400}
+    ]
 
-# WebSocket event for a custom event from ESP32
-@socketio.on('esp32_event')
-def handle_esp32_event(data):
-    print(f"Received event from ESP32: {data}")
-    emit('response', {'data': 'Acknowledged by server!'})
+    # Respond with a success message and the optimal_locations array
+    return jsonify({
+        'status': 'success',
+        'message': 'Received done message',
+        'optimal_locations': optimal_locations
+    }), 200
+
+
+@app.route("/store-data", methods=["POST"])
+def store_data():
+    # Get JSON data from request
+    data = request.get_json()
+
+    # Data validation: check if 'data' key is present and is a list
+    if 'data' not in data or not isinstance(data['data'], list):
+        return jsonify({'error': 'Invalid data format'}), 400
+
+    # Process each entry in the 'data' list
+    new_measurements = []
+    for item in data['data']:
+        # Retrieve the beacon ID using the MAC address from the dictionary
+        beacon_id = beacons_mac_id_dict.get(item.get('mac'))
+        if beacon_id is not None:  # Only process if the MAC address is known
+            new_measurements.append([beacon_id, item.get('dist_est', 0), item.get('rssi', -100)])
+
+    # Sort the new measurements by beacon ID
+    new_measurements.sort(key=lambda x: x[0])
+
+    # Store the processed measurement
+    raw_measurements.append(new_measurements)
+    print(raw_measurements)
+    return jsonify({'message': 'Measurement received'})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=8000)  # Change port as needed
+    app.run(host="0.0.0.0", port=8080)  # Change port as needed

@@ -16,6 +16,7 @@ measure_test_array = [
      [4, 5.22015325446, -100], [5, 5.7008771255, -100], [6, 9.21954445729, -100]]
 ]
 
+
 distances_and_points_list_array = []
 measurements_xy_array = []
 coordinates_dic_test1 = {
@@ -35,9 +36,11 @@ for distances_and_points in distances_and_points_list_array:
 
 print("The point you're standing at:", measurements_xy_array)
 
+
 # preparing data for K-means
 for measurements_xy in measurements_xy_array:
-    data_for_k_means.append(prepare_single_measure_data(measurements_xy, measure_test_array[measurements_xy_array.index(measurements_xy)]))
+    data_for_k_means.append(prepare_single_measure_data(measurements_xy, measure_test_array[measurements_xy_array.index(measurements_xy)],coordinates_dic_test1))
+
 
 # Sample data (replace with your own data)
 from k_means import prepare_single_measure_data

@@ -1,0 +1,47 @@
+.textHead{
+    color: darkred;
+    font-size: 2em;
+    font-family: "Poppins",sans-serif;
+    font-weight: 600;
+    line-height: 80px;
+}
+
+.textPara{
+    color: #030303;
+    font-size: 1.3em;
+    font-family: "Poppins",sans-serif;
+    font-weight: 60;
+    line-height: 80px;
+}
+
+.textParaSmaller{
+    color: brown;
+    font-size: 1em;
+    font-family: "Poppins",sans-serif;
+    font-weight: 60;
+    line-height: 80px;
+}
+
+.tableBody{
+    text-align: center;
+    padding-left: 380px;
+}
+
+.circle-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: red;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.circle-button:hover {
+    background-color: darkred;
+}
