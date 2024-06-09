@@ -15,6 +15,7 @@
 
 #include "esp_http_client.h"
 
+#include "rgb_led.h"
 #include "common.h"
 
 typedef struct {

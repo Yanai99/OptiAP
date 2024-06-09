@@ -17,6 +17,8 @@ esp_http_client_config_t config = {
     .keep_alive_enable = true
 };
 
+EventGroupHandle_t server_connect_event_group;
+
 esp_http_client_handle_t client;
 
 void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -38,6 +40,14 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id
             ESP_LOGI(TAG_WIFI, "Auth mode of AP connected by device's station changed");
         } else if (event_id == WIFI_EVENT_AP_START) {
             ESP_LOGI(TAG_WIFI, "Soft-AP start");
+            xEventGroupClearBits(server_connect_event_group, SERVER_CONNECT_BIT);
+                rgb_brightness_delay_t *rgb_brightness_delay = (rgb_brightness_delay_t *)malloc(sizeof(rgb_brightness_delay_t));
+                rgb_brightness_delay->red = 255;
+                rgb_brightness_delay->green = 0;
+                rgb_brightness_delay->blue = 255;
+                rgb_brightness_delay->brightness = LED_BRIGHTNESS;
+                rgb_brightness_delay->delay = 1000;
+                xTaskCreate(flash_led, "flash_led", 4096, rgb_brightness_delay, 1, NULL);
         } else if (event_id == WIFI_EVENT_AP_STOP) {
             ESP_LOGI(TAG_WIFI, "Soft-AP stop");
         } else if (event_id == WIFI_EVENT_AP_STACONNECTED) {
@@ -45,11 +55,30 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id
             wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *) event_data;
             ESP_LOGI(TAG_WIFI, "Station connected: ["MACSTR"] aid: [%d]",
                 MAC2STR(event->mac), event->aid);
+            // check how many stations are connected
+            wifi_sta_list_t wifi_sta_list;
+            ESP_ERROR_CHECK(esp_wifi_ap_get_sta_list(&wifi_sta_list));
+            if (wifi_sta_list.num > 0) {
+                xEventGroupSetBits(server_connect_event_group, SERVER_CONNECT_BIT);
+            }
         } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
             ESP_LOGI(TAG_WIFI, "A station disconnected from Soft-AP");
             wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t *) event_data;
             ESP_LOGI(TAG_WIFI, "Station disconnected: ["MACSTR"] aid: [%d]",
                 MAC2STR(event->mac), event->aid);
+
+            wifi_sta_list_t wifi_sta_list;
+            ESP_ERROR_CHECK(esp_wifi_ap_get_sta_list(&wifi_sta_list));
+            if (wifi_sta_list.num == 0) {
+                xEventGroupClearBits(server_connect_event_group, SERVER_CONNECT_BIT);
+                rgb_brightness_delay_t *rgb_brightness_delay = (rgb_brightness_delay_t *)malloc(sizeof(rgb_brightness_delay_t));
+                rgb_brightness_delay->red = 255;
+                rgb_brightness_delay->green = 0;
+                rgb_brightness_delay->blue = 255;
+                rgb_brightness_delay->brightness = LED_BRIGHTNESS;
+                rgb_brightness_delay->delay = 1000;
+                xTaskCreate(flash_led, "flash_led", 4096, rgb_brightness_delay, 1, NULL);
+            }
         } else if (event_id == WIFI_EVENT_AP_PROBEREQRECVED) {
             ESP_LOGI(TAG_WIFI, "Receive probe request packet in Soft-AP interface");
         } else if (event_id == WIFI_EVENT_FTM_REPORT) {
@@ -152,6 +181,11 @@ esp_err_t wifi_init(esp_netif_t* sta_netif, esp_netif_t* ap_netif)
         return ESP_ERR_NO_MEM;
     }
 
+    server_connect_event_group = xEventGroupCreate();
+    if (server_connect_event_group == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
@@ -238,11 +272,26 @@ esp_err_t http_post_data(char *post_data)
 
 void ftm_procedure(void *btn_plus_task_to_create)
 {
+    button_task_t *btn_plus_task = (button_task_t *)btn_plus_task_to_create;
+
+    EventBits_t bits = xEventGroupGetBits(server_connect_event_group);
+    if (!(bits & SERVER_CONNECT_BIT)) {
+        ESP_LOGW(TAG_WIFI, "No station connected to the AP");
+        // Re-register the button callback
+        ESP_ERROR_CHECK(iot_button_register_cb(btn_plus_task->btn, BUTTON_SINGLE_CLICK, button_single_press_cb, btn_plus_task->task_to_create));
+
+        // Free the memory allocated in the button_single_press_cb
+        free(btn_plus_task);
+
+        vTaskDelete(NULL);
+        return;
+    }
+
+    set_led_color_with_brightness(255, 0, 0, LED_BRIGHTNESS);
+
     int num_ftm_responders = 0;
     ftm_responder_t ftm_responders[MAX_FTM_RESPONDERS];
     scan_ftm_responders(&num_ftm_responders, ftm_responders);
-
-    button_task_t *btn_plus_task = (button_task_t *)btn_plus_task_to_create;
 
     char post_data[255];
     char buffer[255];
@@ -280,6 +329,19 @@ void ftm_procedure(void *btn_plus_task_to_create)
             ESP_ERROR_CHECK(esp_wifi_ftm_end_session());
         }
         esp_wifi_ftm_end_session();
+    }
+
+    if (num_ftm_responders < 3) {
+        set_led_color_with_brightness(255, 0, 0, LED_BRIGHTNESS);
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+        clear_led();
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+        set_led_color_with_brightness(255, 0, 0, LED_BRIGHTNESS);
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+        clear_led();
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+        set_led_color_with_brightness(255, 0, 0, LED_BRIGHTNESS);
+        vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 
     // remove the last comma

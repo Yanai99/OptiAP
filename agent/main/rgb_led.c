@@ -33,3 +33,24 @@ void clear_led(void)
     ESP_ERROR_CHECK(led_strip_clear(led));
     ESP_ERROR_CHECK(led_strip_refresh(led));
 }
+
+void flash_led(void *pvRgbBrightnessDelay)
+{
+    rgb_brightness_delay_t *rgb_brightness_delay = (rgb_brightness_delay_t *)pvRgbBrightnessDelay;
+
+    for (;;) {
+        set_led_color_with_brightness(rgb_brightness_delay->red, rgb_brightness_delay->green, rgb_brightness_delay->blue, rgb_brightness_delay->brightness);
+        vTaskDelay(rgb_brightness_delay->delay / portTICK_PERIOD_MS);
+        clear_led();
+        vTaskDelay(rgb_brightness_delay->delay / portTICK_PERIOD_MS);
+        
+        if (xEventGroupGetBits(server_connect_event_group) & SERVER_CONNECT_BIT) {
+            set_led_color_with_brightness(0, 255, 0, LED_BRIGHTNESS);
+            break;
+        }
+    }
+
+    free(rgb_brightness_delay);
+
+    vTaskDelete(NULL);
+}
