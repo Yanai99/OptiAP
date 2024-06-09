@@ -1,0 +1,45 @@
+.UploadBody {
+    text-align: center;
+    height: 250px;
+    background-color: #e9f4f9;
+    border-radius: 2px;
+    box-shadow: 0px 1px 12px rgba(3,3,3,0.08);
+
+}
+
+.UploadText{
+    color: #21828e;
+    font-size: 1.3em;
+    font-family: "Poppins",sans-serif;
+    line-height: 16px;
+    text-align: center;
+}
+
+.upload-area {
+    border: 2px dashed #aaa;
+    padding: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+.upload-area p {
+    margin: 0;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 400px;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.imageUpload{
+    color: #21828e;
+    fill: #21828e;
+    font-size: 89px;
+    top: 599px;
+    left: 621px;
+    width: 89px;
+    height: 74px;
+}

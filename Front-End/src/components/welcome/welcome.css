@@ -1,0 +1,40 @@
+.welcome {
+    color: #030303;
+    font-size: 3.5em;
+    font-family: "Poppins",sans-serif;
+    font-weight: 600;
+    line-height: 80px;
+    top: 238px;
+    left: 80px;
+}
+
+.TableBody{
+    text-align: center;
+    padding-left: 70px;
+    padding-right: 70px;
+}
+
+.image {
+    width: 80%;
+    border-radius: 100px;
+    border: 1px solid #e5e5e5;
+    box-sizing: border-box;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.16);
+}
+
+.para{
+    color: #000000;
+    font-size: 1em;
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 500;
+    line-height: 31px;
+}
+
+
+td{
+    vertical-align: middle;
+}
+
+body{
+    background-color: #ededed;
+}

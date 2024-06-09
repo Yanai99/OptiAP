@@ -1,0 +1,61 @@
+
+.buttonBlue {
+    cursor: pointer;
+    width: 220px;
+    height: 53px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    background-color: #3164f4;
+    color: #ffffff;
+    font-size: 1em;
+    font-family: "Inter", system-ui;
+    font-weight: 600;
+    line-height: 21px;
+    outline: none;
+    padding: 15px;
+}
+
+.buttonGrey {
+    cursor: pointer;
+    width: 183px;
+    height: 53px;
+    padding: 0px 8px;
+    border: 1px solid #030303;
+    box-sizing: border-box;
+    border-radius: 12px;
+    background-color: rgba(49,100,244,0);
+    color: #030303;
+    font-size: 16px;
+    font-family: "Inter",system-ui;
+    font-weight: 600;
+    line-height: 21px;
+    outline: none;
+}
+
+.buttonGrey:hover {
+    background-color: #aaaaaa; /* Change background color on hover */
+}
+
+.headerText {
+    cursor: pointer;
+    font-size: 0.8em;
+    font-family: "Iter", system-ui;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    line-height: 21px;
+    text-align: center;
+    outline: none;
+    border: none;
+}
+.headerTextBlue {
+    cursor: pointer;
+    color: #3164f4;
+    font-size: 0.8em;
+    font-family: "Iter", system-ui;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    line-height: 21px;
+    text-align: center;
+    outline: none;
+    border: none;
+}
